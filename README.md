@@ -5,9 +5,11 @@ and notices when you forgot.
 
 ## Install
 
-1. **With HACS:** HACS → ⋮ → **Custom repositories** → add `https://github.com/steeh/ha-bins-out`
-   as type **Integration**, then search for **Bins Out** and **Download**.
-   **Without HACS:** copy `custom_components/bins_out` into your HA `config/custom_components/` folder.
+1. **Home Assistant 2026.11 or newer (Marketplace):** **Settings → Marketplace → Add from link** →
+   enter `steeh/ha-bins-out` → **Add**, then open **Bins Out** and select **Install**.
+   **Older Home Assistant (HACS):** HACS → ⋮ → **Custom repositories** → add
+   `https://github.com/steeh/ha-bins-out` as type **Integration**, then search for **Bins Out** and **Download**.
+   **Manually:** copy `custom_components/bins_out` into your HA `config/custom_components/` folder.
 2. Restart Home Assistant.
 3. **Settings → Devices & services → Add integration → Bins Out**.
 4. Set your reminder times, then add each bin: a name, a colour, and where its collection dates come from (see below).
@@ -24,11 +26,11 @@ apart collections are. Every other date is worked out from that.
 **From a calendar (automatic).** The bin follows events on a Home Assistant calendar, so changes
 from your council are picked up automatically. Bins Out re-reads the calendar every 30 minutes and
 keeps the last dates it found if the calendar is temporarily unavailable. The best source is
-[Waste Collection Schedule](https://github.com/mampfes/hacs_waste_collection_schedule) (HACS),
+[Waste Collection Schedule](https://github.com/mampfes/hacs_waste_collection_schedule) (Marketplace, or HACS on older versions),
 which supports hundreds of councils.
 
 Example: Knowsley Council (Liverpool)
-1. In HACS, install **Waste Collection Schedule** and restart Home Assistant.
+1. In **Settings → Marketplace** (HACS on older versions), install **Waste Collection Schedule** and restart Home Assistant.
 2. Settings → Devices & services → Add integration → **Waste Collection Schedule**. Choose the UK,
    then **Knowsley Metropolitan Borough Council**, and enter your **postcode** and **UPRN**.
    You can find your UPRN by entering your address at [findmyaddress.co.uk](https://www.findmyaddress.co.uk).
@@ -90,7 +92,7 @@ data:
   message: "Reminder: put the blue recycling bin out tonight. Collection is tomorrow."
 ```
 
-**Alexa:** install [Alexa Media Player](https://github.com/alandtse/alexa_media_player) from HACS,
+**Alexa:** install [Alexa Media Player](https://github.com/alandtse/alexa_media_player) from the Marketplace (HACS on older versions),
 then import the blueprint `blueprints/automation/bins_out/alexa_bin_reminders.yaml`
 (copy it to `config/blueprints/automation/bins_out/`) and create an automation from it. Pick your Echo
 devices, choose which reminders to speak and optionally add a phone notification.
