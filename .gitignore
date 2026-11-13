@@ -1,0 +1,18 @@
+# Secrets - never commit
+ai
+*token*
+.env
+
+# Internal working notes (kept locally)
+master.md
+FRONTEND_CHANGES.md
+FRONTEND_CONTRACT.md
+
+# Python / tooling
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+venv/
+*.egg-info/
+.coverage

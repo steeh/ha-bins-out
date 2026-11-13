@@ -1,0 +1,265 @@
+{
+  "config": {
+    "abort": {
+      "single_instance_allowed": "Bins Out is already set up. Use Configure to add more bins."
+    },
+    "error": {
+      "name_taken": "You already have a bin with this name.",
+      "no_match": "No events on this calendar match that name."
+    },
+    "step": {
+      "user": {
+        "title": "Bins Out",
+        "description": "When should you be reminded? You'll add your bins next.",
+        "data": {
+          "evening_time": "Evening reminder (night before)",
+          "morning_time": "Morning reminder (collection day)",
+          "collection_time": "Collection time (bins count as forgotten after this)"
+        }
+      },
+      "bin": {
+        "title": "Bin",
+        "description": "Name it, pick its colour, and choose where its collection dates come from.",
+        "data": {
+          "name": "Name",
+          "colour": "Colour",
+          "source": "Collection dates"
+        }
+      },
+      "bin_manual": {
+        "title": "{name}: collection dates",
+        "description": "Pick any date this bin was or will be collected. Every other date is worked out from it.",
+        "data": {
+          "first_collection": "A collection date",
+          "interval_weeks": "Collected every N weeks"
+        }
+      },
+      "bin_calendar": {
+        "title": "{name}: calendar",
+        "description": "Choose the calendar with your council's collections, e.g. the one made by Waste Collection Schedule.",
+        "data": {
+          "calendar_entity": "Calendar"
+        }
+      },
+      "bin_match": {
+        "title": "{name}: which collections",
+        "description": "Pick the calendar event for this bin. Events on {calendar}: {found}. You can also type part of the name, e.g. \"grey\".",
+        "data": {
+          "match": "Event name"
+        }
+      },
+      "more": {
+        "title": "Bin added",
+        "menu_options": {
+          "bin": "Add another bin",
+          "finish": "Finish"
+        }
+      }
+    }
+  },
+  "options": {
+    "error": {
+      "name_taken": "You already have a bin with this name.",
+      "no_match": "No events on this calendar match that name."
+    },
+    "step": {
+      "init": {
+        "title": "Bins Out",
+        "menu_options": {
+          "settings": "Reminder times",
+          "bin": "Add a bin",
+          "edit_bin": "Edit a bin",
+          "remove_bin": "Remove a bin"
+        }
+      },
+      "settings": {
+        "title": "Reminder times",
+        "data": {
+          "evening_time": "Evening reminder (night before)",
+          "morning_time": "Morning reminder (collection day)",
+          "collection_time": "Collection time (bins count as forgotten after this)"
+        }
+      },
+      "edit_bin": {
+        "title": "Edit a bin",
+        "data": {
+          "selected_bin": "Bin"
+        }
+      },
+      "remove_bin": {
+        "title": "Remove a bin",
+        "data": {
+          "selected_bin": "Bin"
+        }
+      },
+      "bin": {
+        "title": "Bin",
+        "description": "Name it, pick its colour, and choose where its collection dates come from.",
+        "data": {
+          "name": "Name",
+          "colour": "Colour",
+          "source": "Collection dates"
+        }
+      },
+      "bin_manual": {
+        "title": "{name}: collection dates",
+        "description": "Pick any date this bin was or will be collected. Every other date is worked out from it.",
+        "data": {
+          "first_collection": "A collection date",
+          "interval_weeks": "Collected every N weeks"
+        }
+      },
+      "bin_calendar": {
+        "title": "{name}: calendar",
+        "description": "Choose the calendar with your council's collections, e.g. the one made by Waste Collection Schedule.",
+        "data": {
+          "calendar_entity": "Calendar"
+        }
+      },
+      "bin_match": {
+        "title": "{name}: which collections",
+        "description": "Pick the calendar event for this bin. Events on {calendar}: {found}. You can also type part of the name, e.g. \"grey\".",
+        "data": {
+          "match": "Event name"
+        }
+      }
+    }
+  },
+  "selector": {
+    "colour": {
+      "options": {
+        "black": "Black",
+        "grey": "Grey",
+        "blue": "Blue",
+        "green": "Green",
+        "brown": "Brown",
+        "purple": "Purple",
+        "red": "Red",
+        "yellow": "Yellow",
+        "orange": "Orange",
+        "white": "White"
+      }
+    },
+    "source": {
+      "options": {
+        "manual": "Every few weeks from a date I know",
+        "calendar": "From a calendar (council or Waste Collection Schedule)"
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "summary": {
+        "name": "Next collection"
+      },
+      "next_collection": {
+        "name": "Next collection"
+      },
+      "days_until": {
+        "name": "Days until collection"
+      },
+      "status": {
+        "name": "Status",
+        "state": {
+          "upcoming": "Upcoming",
+          "tomorrow": "Put out tonight",
+          "today": "Put out now",
+          "out": "Out",
+          "forgotten": "Forgotten",
+          "collected": "Collected, bring in",
+          "none": "No collections"
+        }
+      }
+    },
+    "binary_sensor": {
+      "due": {
+        "name": "Needs to go out"
+      },
+      "forgotten": {
+        "name": "Forgotten"
+      }
+    },
+    "switch": {
+      "put_out": {
+        "name": "Put out"
+      }
+    },
+    "calendar": {
+      "collections": {
+        "name": "Collections"
+      }
+    }
+  },
+  "services": {
+    "set_put_out": {
+      "name": "Set put out",
+      "description": "Mark a bin as put out (or not) for its next collection.",
+      "fields": {
+        "bin": {
+          "name": "Bin",
+          "description": "Bin name or id."
+        },
+        "put_out": {
+          "name": "Put out",
+          "description": "True when the bin is at the kerb."
+        }
+      }
+    },
+    "move_collection": {
+      "name": "Move collection",
+      "description": "One-off change, e.g. a bank holiday. Moves one collection to another date.",
+      "fields": {
+        "bin": {
+          "name": "Bin",
+          "description": "Bin name or id."
+        },
+        "original_date": {
+          "name": "Original date",
+          "description": "The normal collection date."
+        },
+        "new_date": {
+          "name": "New date",
+          "description": "The date it will actually be collected."
+        }
+      }
+    },
+    "clear_moved": {
+      "name": "Clear moved collections",
+      "description": "Remove all one-off moves for a bin.",
+      "fields": {
+        "bin": {
+          "name": "Bin",
+          "description": "Bin name or id."
+        }
+      }
+    },
+    "cancel_collection": {
+      "name": "Cancel collection",
+      "description": "Mark one collection as not happening. No reminders are sent for it.",
+      "fields": {
+        "bin": {
+          "name": "Bin",
+          "description": "Bin name or id."
+        },
+        "date": {
+          "name": "Date",
+          "description": "The collection date to cancel."
+        }
+      }
+    },
+    "restore_collection": {
+      "name": "Restore collection",
+      "description": "Undo a cancelled collection.",
+      "fields": {
+        "bin": {
+          "name": "Bin",
+          "description": "Bin name or id."
+        },
+        "date": {
+          "name": "Date",
+          "description": "The cancelled date to restore."
+        }
+      }
+    }
+  }
+}

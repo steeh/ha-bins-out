@@ -1,0 +1,269 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bins Out Card – Demo</title>
+<meta name="description" content="Standalone demo harness for the Bins Out Home Assistant card.">
+<style>
+  :root {
+    --primary-color: #03a9f4;
+    --primary-text-color: #212121;
+    --secondary-text-color: #616161;
+    --card-background-color: #ffffff;
+    --divider-color: rgba(0,0,0,.12);
+    --warning-color: #ffa600;
+    --success-color: #43a047;
+    --error-color: #db4437;
+    --ha-card-border-radius: 12px;
+    --page-bg: #f3f4f6;
+  }
+  body.dark {
+    --primary-text-color: #e1e1e1;
+    --secondary-text-color: #9b9b9b;
+    --card-background-color: #1c1c1c;
+    --divider-color: rgba(255,255,255,.12);
+    --page-bg: #111111;
+  }
+  body { margin:0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background: var(--page-bg); color: var(--primary-text-color); transition: background .2s; }
+  main { max-width: 1100px; margin: 0 auto; padding: 24px 16px 48px; }
+  h1 { font-size: 1.4rem; margin: 0 0 4px; }
+  p.sub { margin: 0 0 18px; color: var(--secondary-text-color); font-size: .9rem; }
+  .controls { display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-bottom: 10px; }
+  .controls .lbl { font-size:.8rem; color: var(--secondary-text-color); margin-right: 4px; }
+  button, select { font: inherit; font-size:.85rem; padding:6px 12px; border-radius:8px; border:1px solid var(--divider-color); background: var(--card-background-color); color: var(--primary-text-color); cursor:pointer; }
+  button.active { background: var(--primary-color); color:#fff; border-color: transparent; }
+  .frames { display:flex; flex-wrap:wrap; gap:24px; margin-top: 18px; align-items:flex-start; }
+  .frame h2 { font-size:.8rem; font-weight:500; color: var(--secondary-text-color); margin: 0 0 6px; text-transform: uppercase; letter-spacing:.05em; }
+  .phone { width:360px; }
+  .tablet { width:640px; max-width:100%; }
+  #log { margin-top: 20px; font: 12px/1.5 ui-monospace, monospace; color: var(--secondary-text-color); white-space: pre-wrap; max-height: 140px; overflow:auto; }
+  /* Minimal ha-card stand-in */
+  ha-card { display:block; background: var(--card-background-color); border-radius: var(--ha-card-border-radius); box-shadow: 0 2px 6px rgba(0,0,0,.12); color: var(--primary-text-color); }
+</style>
+</head>
+<body>
+<main>
+  <h1>Bins Out card: demo</h1>
+  <p class="sub">Fake <code>hass</code> object. Tap a bin to toggle "put out", hold for more-info (see log).</p>
+
+  <div class="controls" id="statusControls"><span class="lbl">Recycling status:</span></div>
+  <div class="controls">
+    <span class="lbl">Options:</span>
+    <button id="darkToggle">Dark mode</button>
+    <button id="dueToggle">due: off</button>
+    <button id="calToggle" class="active">Calendar</button>
+    <select id="layoutSel"><option>auto</option><option>row</option><option>list</option></select>
+    <select id="daysSel"><option>7</option><option selected>14</option><option>21</option><option>35</option></select>
+    <button id="missingBtn">Missing entity</button>
+    <button id="swapBtn">Simulate registry swap</button>
+  </div>
+
+  <div class="frames">
+    <div class="frame"><h2>Phone · 360px</h2><div class="phone"><bins-out-card id="c1"></bins-out-card></div></div>
+    <div class="frame"><h2>Tablet · 640px</h2><div class="tablet"><bins-out-card id="c2"></bins-out-card></div></div>
+    <div class="frame"><h2>Editor</h2><div class="phone"><ha-card style="padding:16px"><bins-out-card-editor id="ed"></bins-out-card-editor></ha-card></div></div>
+  </div>
+  <div id="log"></div>
+</main>
+
+<script type="module">
+// Stand-in for HA's <ha-card> (page CSS can't reach into the card's shadow DOM).
+if (!customElements.get("ha-card")) {
+  customElements.define("ha-card", class extends HTMLElement {
+    constructor() {
+      super();
+      this.attachShadow({ mode: "open" }).innerHTML = `<style>:host{display:block;background:var(--card-background-color);
+        border-radius:var(--ha-card-border-radius,12px);box-shadow:0 2px 6px rgba(0,0,0,.15);color:var(--primary-text-color);}</style><slot></slot>`;
+    }
+  });
+}
+await import("./bins-out-card.js");
+
+const pad = (n) => String(n).padStart(2, "0");
+const iso = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+const addDays = (n) => { const t = new Date(); t.setHours(0,0,0,0); t.setDate(t.getDate() + n); return t; };
+const series = (start, stepWeeks, count = 6) => Array.from({ length: count }, (_, i) => iso(addDays(start + i * stepWeeks * 7)));
+const fmt = (d) => d.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" });
+
+function mkBin(id, name, colour, hex, startDay, weeks, extra = {}) {
+  const slug = name.toLowerCase().replace(/\s+/g, "_");
+  const upcoming = series(startDay, weeks);
+  return {
+    id, name, colour, colour_hex: hex, spoken_name: `${colour} ${name.toLowerCase()} bin`,
+    interval_weeks: weeks, next_collection: upcoming[0], days_until: startDay,
+    status: startDay === 1 ? "tomorrow" : startDay === 0 ? "today" : "upcoming",
+    put_out: false, due: false, forgotten: false, upcoming, moved: {},
+    entities: {
+      next_collection: `sensor.${slug}_next_collection`, days_until: `sensor.${slug}_days_until_collection`,
+      status: `sensor.${slug}_status`, due: `binary_sensor.${slug}_needs_to_go_out`,
+      forgotten: `binary_sensor.${slug}_forgotten`, put_out: `switch.${slug}_put_out`,
+    },
+    ...extra,
+  };
+}
+
+const garden = mkBin("gar", "Garden", "green", "#2e9e4f", 8, 2);
+// Demonstrate a moved collection (bank holiday): originally 1 day earlier.
+garden.moved = { [iso(addDays(21))]: garden.upcoming[1] };
+
+const bins = [
+  mkBin("rec", "Recycling", "blue", "#1e6fd9", 1, 2),
+  mkBin("gen", "General", "black", "#2b2b2b", 4, 1),
+  garden,
+  mkBin("food", "Food", "grey", "#8a8a8a", 4, 1),
+  mkBin("gla", "Glass", "white", "#f4f4f4", 11, 4),
+];
+
+let missing = false;
+let due = false;
+let config = { entity: "sensor.bins_out_next_collection", title: "Bins", show_calendar: true, days: 14, layout: "auto" };
+
+function messages() {
+  const r = bins[0];
+  const out = { tonight_message: null, morning_message: null, forgotten_message: null };
+  if (r.status === "tomorrow") out.tonight_message = `Reminder: put the ${r.spoken_name} out tonight. Collection is tomorrow.`;
+  if (r.status === "today") out.morning_message = `Put the ${r.spoken_name} out now. Collection is this morning.`;
+  if (r.status === "forgotten") out.forgotten_message = `Looks like the ${r.spoken_name} was missed this morning.`;
+  return out;
+}
+
+function buildHass() {
+  const states = {};
+  if (!missing) {
+    const sorted = [...bins].sort((a, b) => (a.days_until ?? 999) - (b.days_until ?? 999));
+    const min = sorted[0]?.days_until;
+    states["sensor.bins_out_next_collection"] = {
+      entity_id: "sensor.bins_out_next_collection",
+      state: min == null ? "unknown" : String(min),
+      last_updated: new Date().toISOString() + Math.random(),
+      attributes: {
+        bins: sorted,
+        next_bins: sorted.filter((b) => b.days_until === min && min != null).map((b) => b.name),
+        evening_time: "19:00:00", morning_time: "06:30:00", collection_time: "07:00:00",
+        ...messages(),
+      },
+    };
+  }
+  return {
+    states,
+    callService(domain, service, data) {
+      log(`callService(${domain}.${service}, ${JSON.stringify(data)})`);
+      const bin = bins.find((b) => b.entities.put_out === data.entity_id);
+      if (bin && domain === "switch" && service === "toggle") {
+        bin.put_out = !bin.put_out;
+        if (bin.put_out) bin.status = bin.status === "forgotten" ? "collected" : "out";
+        else bin.status = bin.days_until === 0 ? "today" : "tomorrow";
+        syncButtons();
+        push();
+      }
+      return Promise.resolve();
+    },
+    callApi() { return Promise.resolve([]); },
+  };
+}
+
+let cards = [document.getElementById("c1"), document.getElementById("c2")];
+const editor = document.getElementById("ed");
+
+function push() {
+  const hass = buildHass();
+  cards.forEach((c) => { c.setConfig(config); c.hass = hass; });
+}
+
+function log(msg) {
+  const el = document.getElementById("log");
+  el.textContent = `${new Date().toLocaleTimeString()}  ${msg}\n` + el.textContent;
+}
+document.addEventListener("hass-more-info", (e) => log(`hass-more-info → ${e.detail.entityId}`));
+
+/* status buttons */
+const STATUSES = {
+  upcoming: { days_until: 3, put_out: false },
+  tomorrow: { days_until: 1, put_out: false },
+  today: { days_until: 0, put_out: false },
+  out: { days_until: 1, put_out: true },
+  collected: { days_until: 0, put_out: true },
+  forgotten: { days_until: 0, put_out: false },
+  none: { days_until: null, put_out: false },
+};
+const statusBox = document.getElementById("statusControls");
+for (const s of Object.keys(STATUSES)) {
+  const b = document.createElement("button");
+  b.textContent = s; b.id = `status-${s}`; b.dataset.status = s;
+  b.addEventListener("click", () => setStatus(s));
+  statusBox.appendChild(b);
+}
+function setStatus(s) {
+  const r = bins[0];
+  const p = STATUSES[s];
+  r.status = s; r.put_out = p.put_out; r.days_until = p.days_until;
+  r.forgotten = s === "forgotten";
+  r.due = due && (s === "tomorrow" || s === "today");
+  if (s === "none") { r.next_collection = null; r.upcoming = []; }
+  else { r.upcoming = series(p.days_until, 2); r.next_collection = r.upcoming[0]; }
+  syncButtons(); push();
+}
+function syncButtons() {
+  statusBox.querySelectorAll("button").forEach((b) => b.classList.toggle("active", b.dataset.status === bins[0].status));
+}
+
+document.getElementById("darkToggle").addEventListener("click", (e) => {
+  document.body.classList.toggle("dark");
+  e.target.classList.toggle("active", document.body.classList.contains("dark"));
+});
+document.getElementById("dueToggle").addEventListener("click", (e) => {
+  due = !due; e.target.textContent = `due: ${due ? "on" : "off"}`; e.target.classList.toggle("active", due);
+  setStatus(bins[0].status);
+});
+document.getElementById("calToggle").addEventListener("click", (e) => {
+  config = { ...config, show_calendar: !config.show_calendar };
+  e.target.classList.toggle("active", config.show_calendar); push();
+});
+document.getElementById("layoutSel").addEventListener("change", (e) => { config = { ...config, layout: e.target.value }; push(); });
+document.getElementById("daysSel").addEventListener("change", (e) => { config = { ...config, days: Number(e.target.value) }; push(); });
+document.getElementById("missingBtn").addEventListener("click", (e) => {
+  missing = !missing; e.target.classList.toggle("active", missing); push();
+});
+
+/* Acceptance test for FRONTEND_CHANGES §1: swap window.customElements like HA 2026.10 does at boot. */
+document.getElementById("swapBtn").addEventListener("click", () => {
+  let swapped = false;
+  if (typeof CustomElementRegistry === "function") {
+    try {
+      const fresh = new CustomElementRegistry();
+      Object.defineProperty(window, "customElements", { value: fresh, configurable: true, writable: true });
+      swapped = true;
+    } catch (err) {
+      log(`new CustomElementRegistry() not supported (${err.message}); running the check path only`);
+    }
+  }
+  const before = !!window.customElements.get("bins-out-card");
+  window.__binsOutCheckRegistry();
+  const card = !!window.customElements.get("bins-out-card");
+  const ed = !!window.customElements.get("bins-out-card-editor");
+  log(`Registry swap ${swapped ? "performed" : "not supported, check only"}: ` +
+      `before check=${before}, after check card=${card} editor=${ed} ${card && ed ? "✓" : "✗"}`);
+  // Rebuild both cards to prove they still render.
+  cards = cards.map((old) => {
+    const n = document.createElement("bins-out-card");
+    n.id = old.id;
+    old.replaceWith(n);
+    return n;
+  });
+  push();
+  const rendered = cards.every((c) => c.shadowRoot && c.shadowRoot.querySelector(".bin"));
+  log(`Cards rendered after swap: ${rendered ? "yes ✓" : "NO ✗"}`);
+});
+
+editor.setConfig(config);
+editor.addEventListener("config-changed", (e) => {
+  try { config = { ...e.detail.config }; push(); log(`config-changed ${JSON.stringify(config)}`); }
+  catch (err) { log(`config error: ${err.message}`); }
+});
+
+syncButtons();
+push();
+</script>
+</body>
+</html>
